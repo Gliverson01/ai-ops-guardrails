@@ -1,0 +1,27 @@
+name: ci
+
+on:
+  push:
+  pull_request:
+
+jobs:
+  test:
+    runs-on: ${{ matrix.os }}
+    strategy:
+      matrix:
+        os: [ubuntu-latest, windows-latest]
+        python: ["3.10", "3.13"]
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: ${{ matrix.python }}
+      - run: pip install -e ".[dev]"
+      - run: ruff check .
+      - run: pytest -q
+      - name: Hook entry point works after install
+        shell: bash
+        run: |
+          out=$(echo '{"tool_name":"Read","tool_input":{"file_path":"/srv/app/.env"},"cwd":"."}' | guardrails-hook)
+          echo "$out"
+          echo "$out" | grep -q '"permissionDecision": "deny"'
